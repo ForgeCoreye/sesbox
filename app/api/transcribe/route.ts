@@ -1,69 +1,158 @@
-import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
+import { NextResponse } from "next/server";
+import { randomUUID } from "crypto";
 
 export const runtime = "nodejs";
 
-type TranscribeSuccessResponse = {
-  transcript: string;
-  filename?: string;
-  mimeType?: string;
-  durationMs: number;
+type TranscriptSegment = {
+  id: string;
+  start: number;
+  end: number;
+  text: string;
 };
 
-type ErrorResponse = {
-  error: string;
+type TranscriptDraft = {
+  id: string;
+  createdAt: string;
+  source: {
+    filename: string;
+    mimeType: string;
+    size: number;
+  };
+  transcript: {
+    text: string;
+    language: string;
+    confidence: number;
+    segments: TranscriptSegment[];
+  };
 };
 
-function jsonError(message: string, status: number) {
-  return NextResponse.json<ErrorResponse>({ error: message }, { status });
+type DraftStore = {
+  drafts: Map<string, TranscriptDraft>;
+};
+
+declare global {
+  // eslint-disable-next-line no-var
+  var __sesboxDraftStore: DraftStore | undefined;
 }
 
-function isAudioFile(file: File): boolean {
-  return typeof file.type === "string" && file.type.startsWith("audio/");
+function getDraftStore(): DraftStore {
+  if (!globalThis.__sesboxDraftStore) {
+    globalThis.__sesboxDraftStore = { drafts: new Map<string, TranscriptDraft>() };
+  }
+  return globalThis.__sesboxDraftStore;
 }
 
-export async function POST(request: NextRequest) {
+function isValidAudioFile(file: File | null): file is File {
+  if (!file) return false;
+  if (typeof file.size !== "number" || file.size <= 0) return false;
+
+  const mimeType = file.type?.toLowerCase() ?? "";
+  const name = file.name?.toLowerCase() ?? "";
+
+  const allowedMimeTypes = new Set([
+    "audio/mpeg",
+    "audio/mp3",
+    "audio/wav",
+    "audio/x-wav",
+    "audio/mp4",
+    "audio/m4a",
+    "audio/aac",
+    "audio/ogg",
+    "audio/webm",
+    "audio/flac",
+    "application/octet-stream",
+  ]);
+
+  const allowedExtensions = [".mp3", ".wav", ".m4a", ".aac", ".ogg", ".webm", ".flac", ".mp4"];
+
+  return allowedMimeTypes.has(mimeType) || allowedExtensions.some((ext) => name.endsWith(ext));
+}
+
+function buildMockTranscript(filename: string): TranscriptDraft["transcript"] {
+  const baseText = `Mock transcript for ${filename}. This is a placeholder transcription generated locally to validate the capture flow.`;
+  return {
+    text: baseText,
+    language: "en",
+    confidence: 0.98,
+    segments: [
+      {
+        id: randomUUID(),
+        start: 0,
+        end: 2.4,
+        text: "Mock transcript generated locally.",
+      },
+      {
+        id: randomUUID(),
+        start: 2.4,
+        end: 5.8,
+        text: "Use this draft to test the voice-to-draft workflow.",
+      },
+    ],
+  };
+}
+
+async function createDraftFromAudio(file: File): Promise<TranscriptDraft> {
+  const draftId = randomUUID();
+  const transcript = buildMockTranscript(file.name || "audio-file");
+
+  return {
+    id: draftId,
+    createdAt: new Date().toISOString(),
+    source: {
+      filename: file.name || "audio-file",
+      mimeType: file.type || "application/octet-stream",
+      size: file.size,
+    },
+    transcript,
+  };
+}
+
+export async function POST(request: Request) {
   try {
-    const { userId } = await auth();
-
-    if (!userId) {
-      return jsonError("Unauthorized", 401);
-    }
-
-    const contentType = request.headers.get("content-type") ?? "";
+    const contentType = request.headers.get("content-type") || "";
     if (!contentType.toLowerCase().includes("multipart/form-data")) {
-      return jsonError("Content-Type must be multipart/form-data", 400);
+      return NextResponse.json(
+        { error: "Invalid content type. Expected multipart/form-data." },
+        { status: 400 }
+      );
     }
 
     const formData = await request.formData();
-    const audio = formData.get("audio");
+    const audioField = formData.get("audio");
 
-    if (!(audio instanceof File)) {
-      return jsonError('Missing required "audio" file field', 400);
+    if (!(audioField instanceof File)) {
+      return NextResponse.json(
+        { error: 'Missing audio file. Expected form field "audio".' },
+        { status: 400 }
+      );
     }
 
-    if (audio.size <= 0) {
-      return jsonError("Uploaded audio file is empty", 400);
+    if (!isValidAudioFile(audioField)) {
+      return NextResponse.json(
+        { error: "Invalid audio file. Please upload a non-empty audio file." },
+        { status: 400 }
+      );
     }
 
-    if (!isAudioFile(audio)) {
-      return jsonError("Invalid file type. Expected an audio file.", 400);
-    }
+    const draft = await createDraftFromAudio(audioField);
+    const store = getDraftStore();
+    store.drafts.set(draft.id, draft);
 
-    const startedAt = Date.now();
-
-    const transcript = `Mock transcript for ${audio.name || "uploaded audio"} (${audio.type || "unknown type"})`;
-
-    const response: TranscribeSuccessResponse = {
-      transcript,
-      filename: audio.name || undefined,
-      mimeType: audio.type || undefined,
-      durationMs: Date.now() - startedAt,
-    };
-
-    return NextResponse.json(response, { status: 200 });
+    return NextResponse.json(
+      {
+        draftId: draft.id,
+        transcript: draft.transcript,
+      },
+      { status: 200 }
+    );
   } catch (error) {
-    console.error("Transcribe API error:", error);
-    return jsonError("Internal server error", 500);
+    console.error("Transcription route error:", error);
+
+    return NextResponse.json(
+      {
+        error: "Failed to process transcription request.",
+      },
+      { status: 500 }
+    );
   }
 }

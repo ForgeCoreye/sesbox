@@ -1,264 +1,199 @@
 "use client";
 
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
+import { useTranscription } from '../hooks/useTranscription';
+import { ApprovalCard } from './ApprovalCard';
 
-type RecorderStatus = "ready" | "recording" | "exported";
+type RecordingState = "idle" | "recording" | "stopped" | "transcribing" | "error";
 
 type VoiceRecorderProps = {
-  onError?: (...args: any[]) => void
   onSuccess?: (...args: any[]) => void
-  onExport?: (audioBlob: Blob) => Promise<void> | void;
-  className?: string;
+  onApproved?: (...args: any[]) => void;
+  onError?: (...args: any[]) => void;
 };
 
-function formatDuration(seconds: number): string {
-  const safeSeconds = Number.isFinite(seconds) && seconds > 0 ? Math.floor(seconds) : 0;
-  const mins = Math.floor(safeSeconds / 60);
-  const secs = safeSeconds % 60;
-  return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
+function getMimeType(): string {
+  if (typeof MediaRecorder === "undefined") return "audio/webm";
+  const candidates = ["audio/webm;codecs=opus", "audio/webm", "audio/mp4"];
+  for (const candidate of candidates) {
+    if (MediaRecorder.isTypeSupported(candidate)) return candidate;
+  }
+  return "audio/webm";
 }
 
-function getStatusLabel(status: RecorderStatus): string {
-  switch (status) {
-    case "recording":
-      return "Recording...";
-    case "exported":
-      return "Exported";
-    case "ready":
-    default:
-      return "Ready to record";
+function createAudioUrl(blob: Blob | null): string | null {
+  if (!blob) return null;
+  try {
+    return URL.createObjectURL(blob);
+  } catch {
+    return null;
   }
 }
 
-export default function VoiceRecorder({ onExport, className }: VoiceRecorderProps) {
-  const [status, setStatus] = useState<RecorderStatus>("ready");
-  const [elapsedSeconds, setElapsedSeconds] = useState(0);
-  const [error, setError] = useState<string | null>(null);
-  const [audioUrl, setAudioUrl] = useState<string | null>(null);
+export default function VoiceRecorder({ onApproved, onError }: VoiceRecorderProps) {
+  const [state, setState] = useState<RecordingState>("idle");
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
-  const [isExporting, setIsExporting] = useState(false);
+  const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
+  const [chunks, setChunks] = useState<BlobPart[]>([]);
+  const [localError, setLocalError] = useState<string | null>(null);
 
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const streamRef = useRef<MediaStream | null>(null);
-  const chunksRef = useRef<BlobPart[]>([]);
-  const timerRef = useRef<number | null>(null);
+  const audioUrl = useMemo(() => createAudioUrl(audioBlob), [audioBlob]);
 
-  const canRecord = status !== "recording";
-  const canStop = status === "recording";
-  const hasRecording = Boolean(audioUrl && audioBlob);
-
-  const statusLabel = useMemo(() => getStatusLabel(status), [status]);
+  const transcription = useTranscription({
+    audioBlob,
+    enabled: Boolean(audioBlob) && state === "stopped",
+  });
 
   useEffect(() => {
-    return () => {
-      if (timerRef.current) {
-        window.clearInterval(timerRef.current);
-      }
-      if (audioUrl) {
-        URL.revokeObjectURL(audioUrl);
-      }
-      streamRef.current?.getTracks().forEach((track) => track.stop());
-    };
-  }, [audioUrl]);
-
-  const clearTimer = () => {
-    if (timerRef.current) {
-      window.clearInterval(timerRef.current);
-      timerRef.current = null;
-    }
-  };
-
-  const stopStream = () => {
-    streamRef.current?.getTracks().forEach((track) => track.stop());
-    streamRef.current = null;
-  };
-
-  const resetRecording = () => {
-    clearTimer();
-    stopStream();
-    mediaRecorderRef.current = null;
-    chunksRef.current = [];
-    setElapsedSeconds(0);
-    setError(null);
-    setStatus("ready");
-    if (audioUrl) {
-      URL.revokeObjectURL(audioUrl);
-    }
-    setAudioUrl(null);
-    setAudioBlob(null);
-    setIsExporting(false);
-  };
-
-  const startRecording = async () => {
-    setError(null);
-
-    if (typeof window === "undefined" || !navigator.mediaDevices?.getUserMedia) {
-      setError("Audio recording is not supported in this browser.");
+    if (transcription.isLoading) {
+      setState("transcribing");
       return;
     }
 
+    if (transcription.error) {
+      setState("error");
+      const err = transcription.error instanceof Error ? transcription.error : new Error("Transcription failed");
+      setLocalError(err.message);
+      onError?.(err);
+      return;
+    }
+
+    if (transcription.data && state === "transcribing") {
+      setState("idle");
+    }
+  }, [transcription.isLoading, transcription.error, transcription.data, state, onError]);
+
+  useEffect(() => {
+    return () => {
+      if (audioUrl) URL.revokeObjectURL(audioUrl);
+    };
+  }, [audioUrl]);
+
+  const startRecording = async () => {
+    setLocalError(null);
+
     try {
-      if (audioUrl) {
-        URL.revokeObjectURL(audioUrl);
-        setAudioUrl(null);
+      if (typeof window === "undefined" || !navigator.mediaDevices?.getUserMedia) {
+        throw new Error("Audio recording is not supported in this browser.");
       }
 
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      streamRef.current = stream;
-      chunksRef.current = [];
+      const recorder = new MediaRecorder(stream, { mimeType: getMimeType() });
 
-      const recorder = new MediaRecorder(stream);
-      mediaRecorderRef.current = recorder;
-
+      const nextChunks: BlobPart[] = [];
       recorder.ondataavailable = (event: BlobEvent) => {
-        if (event.data && event.data.size > 0) {
-          chunksRef.current.push(event.data);
-        }
-      };
-
-      recorder.onerror = () => {
-        setError("Recording failed. Please try again.");
-        resetRecording();
+        if (event.data.size > 0) nextChunks.push(event.data);
       };
 
       recorder.onstop = () => {
         try {
-          const blob = new Blob(chunksRef.current, { type: recorder.mimeType || "audio/webm" });
-          const url = URL.createObjectURL(blob);
+          const blob = new Blob(nextChunks, { type: recorder.mimeType || "audio/webm" });
+          setChunks([]);
           setAudioBlob(blob);
-          setAudioUrl(url);
-          setStatus("exported");
-        } catch {
-          setError("Could not prepare the recording preview.");
-          setStatus("ready");
+          setState("stopped");
+        } catch (err) {
+          const error = err instanceof Error ? err : new Error("Failed to finalize recording.");
+          setState("error");
+          setLocalError(error.message);
+          onError?.(error);
         } finally {
-          clearTimer();
-          stopStream();
-          mediaRecorderRef.current = null;
+          stream.getTracks().forEach((track) => track.stop());
         }
       };
 
+      setChunks(nextChunks);
+      setMediaRecorder(recorder);
+      setAudioBlob(null);
+      setState("recording");
       recorder.start();
-      setElapsedSeconds(0);
-      setStatus("recording");
-
-      timerRef.current = window.setInterval(() => {
-        setElapsedSeconds((prev) => prev + 1);
-      }, 1000);
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Unable to access microphone.";
-      setError(message);
-      resetRecording();
+      const error = err instanceof Error ? err : new Error("Failed to start recording.");
+      setState("error");
+      setLocalError(error.message);
+      onError?.(error);
     }
   };
 
   const stopRecording = () => {
     try {
-      mediaRecorderRef.current?.stop();
-    } catch {
-      setError("Could not stop recording cleanly.");
-      resetRecording();
-    }
-  };
-
-  const handleExport = async () => {
-    if (!audioBlob) return;
-
-    setIsExporting(true);
-    setError(null);
-
-    try {
-      await onExport?.(audioBlob);
-      setStatus("exported");
+      if (!mediaRecorder || mediaRecorder.state !== "recording") return;
+      mediaRecorder.stop();
+      setMediaRecorder(null);
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Export failed.";
-      setError(message);
-    } finally {
-      setIsExporting(false);
+      const error = err instanceof Error ? err : new Error("Failed to stop recording.");
+      setState("error");
+      setLocalError(error.message);
+      onError?.(error);
     }
   };
+
+  const handleApprove = () => {
+    if (!transcription.data || !audioBlob) return;
+    onApproved?.({
+      transcript: transcription.data.transcript,
+      title: transcription.data.title,
+      audioBlob,
+    });
+  };
+
+  const transcript = transcription.data?.transcript ?? "";
+  const title = transcription.data?.title ?? "";
 
   return (
-    <div className={className ?? "w-full rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"}>
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <p className="text-sm font-medium text-slate-900">Voice Recorder</p>
-          <p className="text-xs text-slate-500">{statusLabel}</p>
-        </div>
-
-        <div className="rounded-full bg-slate-100 px-3 py-1 text-sm font-semibold tabular-nums text-slate-700">
-          {status === "recording" ? formatDuration(elapsedSeconds) : "00:00"}
-        </div>
-      </div>
-
-      {error ? (
-        <div className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-          {error}
-        </div>
-      ) : null}
-
-      <div className="mt-4 flex flex-col gap-3">
-        <div className="flex items-center gap-3">
+    <div className="space-y-4">
+      <div className="flex items-center gap-3">
+        {state !== "recording" ? (
           <button
             type="button"
             onClick={startRecording}
-            disabled={!canRecord}
-            className="flex min-h-14 flex-1 items-center justify-center rounded-xl bg-slate-900 px-4 py-3 text-base font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-300"
-            aria-label="Start recording"
+            className="rounded-md bg-black px-4 py-2 text-white disabled:opacity-50"
+            disabled={transcription.isLoading}
           >
-            ● Record
+            Start recording
           </button>
-
+        ) : (
           <button
             type="button"
             onClick={stopRecording}
-            disabled={!canStop}
-            className="flex min-h-14 flex-1 items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-3 text-base font-semibold text-slate-900 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:border-slate-200 disabled:text-slate-400"
-            aria-label="Stop recording"
+            className="rounded-md bg-red-600 px-4 py-2 text-white"
           >
-            ■ Stop
+            Stop recording
           </button>
-        </div>
+        )}
 
-        {hasRecording ? (
-          <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-            <div className="mb-3 flex items-center justify-between gap-3">
-              <div>
-                <p className="text-sm font-semibold text-slate-900">Preview</p>
-                <p className="text-xs text-slate-500">Listen back before exporting.</p>
-              </div>
-              <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-700">
-                Ready to export
-              </span>
-            </div>
-
-            <audio controls src={audioUrl ?? undefined} className="w-full" />
-
-            <div className="mt-4 flex flex-col gap-3 sm:flex-row">
-              <button
-                type="button"
-                onClick={resetRecording}
-                className="flex min-h-12 flex-1 items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-900 transition hover:bg-slate-50"
-              >
-                Retry
-              </button>
-
-              <button
-                type="button"
-                onClick={handleExport}
-                disabled={isExporting}
-                className="flex min-h-12 flex-1 items-center justify-center rounded-xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-emerald-500 disabled:cursor-not-allowed disabled:bg-emerald-300"
-              >
-                {isExporting ? "Exporting..." : "Export"}
-              </button>
-            </div>
-          </div>
-        ) : (
-          <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
-            Tap <span className="font-semibold text-slate-900">Record</span> to begin. Your audio preview will appear here after you stop.
-          </div>
+        {state === "transcribing" && (
+          <span className="text-sm text-gray-600">Transcribing audio…</span>
         )}
       </div>
+
+      {localError && (
+        <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+          {localError}
+        </div>
+      )}
+
+      {audioBlob && audioUrl && (
+        <div className="rounded-md border border-gray-200 p-3">
+          <audio controls src={audioUrl} className="w-full" />
+        </div>
+      )}
+
+      {transcription.isLoading && (
+        <div className="rounded-md border border-gray-200 bg-gray-50 p-4 text-sm text-gray-600">
+          Processing your recording…
+        </div>
+      )}
+
+      {transcription.data && !transcription.isLoading && (
+        <ApprovalCard
+          transcript={transcript}
+          title={title}
+          onApprove={handleApprove}
+          onEdit={(next) => {
+            transcription.setDraft?.(next);
+          }}
+        />
+      )}
     </div>
   );
 }

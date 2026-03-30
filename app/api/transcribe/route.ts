@@ -1,157 +1,89 @@
-import { NextResponse } from "next/server";
-import { randomUUID } from "crypto";
+import { NextRequest, NextResponse } from 'next/server';
 
-export const runtime = "nodejs";
+export const runtime = 'nodejs';
 
-type TranscriptSegment = {
-  id: string;
-  start: number;
-  end: number;
-  text: string;
+type TranscriptResponse = {
+  transcript: string;
+  title: string;
 };
 
-type TranscriptDraft = {
-  id: string;
-  createdAt: string;
-  source: {
-    filename: string;
-    mimeType: string;
-    size: number;
-  };
-  transcript: {
-    text: string;
-    language: string;
-    confidence: number;
-    segments: TranscriptSegment[];
-  };
-};
-
-type DraftStore = {
-  drafts: Map<string, TranscriptDraft>;
-};
-
-declare global {
-  // eslint-disable-next-line no-var
-  var __sesboxDraftStore: DraftStore | undefined;
+function isFormData(value: unknown): value is FormData {
+  return typeof value === 'object' && value !== null && typeof (value as FormData).get === 'function';
 }
 
-function getDraftStore(): DraftStore {
-  if (!globalThis.__sesboxDraftStore) {
-    globalThis.__sesboxDraftStore = { drafts: new Map<string, TranscriptDraft>() };
+function getAudioFile(formData: FormData): File | null {
+  const value = formData.get('audio');
+  if (value instanceof File && value.size > 0) {
+    return value;
   }
-  return globalThis.__sesboxDraftStore;
+  return null;
 }
 
-function isValidAudioFile(file: File | null): file is File {
-  if (!file) return false;
-  if (typeof file.size !== "number" || file.size <= 0) return false;
-
-  const mimeType = file.type?.toLowerCase() ?? "";
-  const name = file.name?.toLowerCase() ?? "";
-
-  const allowedMimeTypes = new Set([
-    "audio/mpeg",
-    "audio/mp3",
-    "audio/wav",
-    "audio/x-wav",
-    "audio/mp4",
-    "audio/m4a",
-    "audio/aac",
-    "audio/ogg",
-    "audio/webm",
-    "audio/flac",
-    "application/octet-stream",
-  ]);
-
-  const allowedExtensions = [".mp3", ".wav", ".m4a", ".aac", ".ogg", ".webm", ".flac", ".mp4"];
-
-  return allowedMimeTypes.has(mimeType) || allowedExtensions.some((ext) => name.endsWith(ext));
+function estimateDurationSeconds(file: File): number {
+  const bytesPerSecond = 16000;
+  const estimated = Math.max(1, Math.round(file.size / bytesPerSecond));
+  return estimated;
 }
 
-function buildMockTranscript(filename: string): TranscriptDraft["transcript"] {
-  const baseText = `Mock transcript for ${filename}. This is a placeholder transcription generated locally to validate the capture flow.`;
+function buildMockTranscript(durationSeconds: number): string {
+  const minutes = Math.max(1, Math.round(durationSeconds / 60));
+  if (minutes <= 1) {
+    return 'Quick voice note about a draft idea, with a clear next step and a short action item.';
+  }
+  if (minutes <= 3) {
+    return 'Voice note covering the main idea, a few supporting points, and a simple plan to move forward.';
+  }
+  return 'Longer voice note with multiple ideas, context, and a structured outline that can be turned into a publishable draft.';
+}
+
+function buildSuggestedTitle(durationSeconds: number): string {
+  const minutes = Math.max(1, Math.round(durationSeconds / 60));
+  if (minutes <= 1) return 'Quick Voice Note Draft';
+  if (minutes <= 3) return 'Draft From Voice Note';
+  return 'Voice Note Summary Draft';
+}
+
+function buildResponse(file: File): TranscriptResponse {
+  const durationSeconds = estimateDurationSeconds(file);
   return {
-    text: baseText,
-    language: "en",
-    confidence: 0.98,
-    segments: [
-      {
-        id: randomUUID(),
-        start: 0,
-        end: 2.4,
-        text: "Mock transcript generated locally.",
-      },
-      {
-        id: randomUUID(),
-        start: 2.4,
-        end: 5.8,
-        text: "Use this draft to test the voice-to-draft workflow.",
-      },
-    ],
+    transcript: buildMockTranscript(durationSeconds),
+    title: buildSuggestedTitle(durationSeconds),
   };
 }
 
-async function createDraftFromAudio(file: File): Promise<TranscriptDraft> {
-  const draftId = randomUUID();
-  const transcript = buildMockTranscript(file.name || "audio-file");
-
-  return {
-    id: draftId,
-    createdAt: new Date().toISOString(),
-    source: {
-      filename: file.name || "audio-file",
-      mimeType: file.type || "application/octet-stream",
-      size: file.size,
-    },
-    transcript,
-  };
-}
-
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
-    const contentType = request.headers.get("content-type") || "";
-    if (!contentType.toLowerCase().includes("multipart/form-data")) {
+    const contentType = request.headers.get('content-type') || '';
+    if (!contentType.toLowerCase().includes('multipart/form-data')) {
       return NextResponse.json(
-        { error: "Invalid content type. Expected multipart/form-data." },
+        { error: 'Invalid input: expected multipart/form-data with an audio file.' },
         { status: 400 }
       );
     }
 
     const formData = await request.formData();
-    const audioField = formData.get("audio");
-
-    if (!(audioField instanceof File)) {
+    if (!isFormData(formData)) {
       return NextResponse.json(
-        { error: 'Missing audio file. Expected form field "audio".' },
+        { error: 'Invalid input: unable to read form data.' },
         { status: 400 }
       );
     }
 
-    if (!isValidAudioFile(audioField)) {
+    const audio = getAudioFile(formData);
+    if (!audio) {
       return NextResponse.json(
-        { error: "Invalid audio file. Please upload a non-empty audio file." },
+        { error: 'Invalid input: audio file is required.' },
         { status: 400 }
       );
     }
 
-    const draft = await createDraftFromAudio(audioField);
-    const store = getDraftStore();
-    store.drafts.set(draft.id, draft);
+    const payload = buildResponse(audio);
 
-    return NextResponse.json(
-      {
-        draftId: draft.id,
-        transcript: draft.transcript,
-      },
-      { status: 200 }
-    );
+    return NextResponse.json(payload, { status: 200 });
   } catch (error) {
-    console.error("Transcription route error:", error);
-
+    console.error('Transcribe endpoint error:', error);
     return NextResponse.json(
-      {
-        error: "Failed to process transcription request.",
-      },
+      { error: 'Failed to process transcription request.' },
       { status: 500 }
     );
   }

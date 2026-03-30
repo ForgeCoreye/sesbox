@@ -1,278 +1,153 @@
-"use client";
+"use client"
 
-import { useState } from "react";
+import { useState } from 'react'
 
-interface FormData {
-  name: string;
-  email: string;
-  painPoint: string;
+type FormData = {
+  name: string
+  email: string
+  painPoint: string
 }
 
-interface FormErrors {
-  name?: string;
-  email?: string;
-  painPoint?: string;
-}
+type FormErrors = Partial<Record<keyof FormData, string>>
 
-type SubmitStatus = "idle" | "loading" | "success" | "error";
+type SubmitState = 'idle' | 'loading' | 'success' | 'error'
+
+const EMPTY_FORM: FormData = {
+  name: '',
+  email: '',
+  painPoint: '',
+}
 
 function validateForm(data: FormData): FormErrors {
-  const errors: FormErrors = {};
+  const errors: FormErrors = {}
 
-  if (!data.name.trim()) {
-    errors.name = "Name is required.";
-  } else if (data.name.trim().length < 2) {
-    errors.name = "Name must be at least 2 characters.";
+  if (!data.name.trim()) errors.name = 'Name is required.'
+  if (!data.email.trim()) errors.email = 'Email is required.'
+  if (data.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email.trim())) {
+    errors.email = 'Please enter a valid email address.'
   }
+  if (!data.painPoint.trim()) errors.painPoint = 'Please describe your workflow pain point.'
 
-  if (!data.email.trim()) {
-    errors.email = "Email is required.";
-  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email.trim())) {
-    errors.email = "Please enter a valid email address.";
-  }
-
-  if (!data.painPoint.trim()) {
-    errors.painPoint = "Please describe your workflow pain point.";
-  } else if (data.painPoint.trim().length < 10) {
-    errors.painPoint = "Please provide a bit more detail (at least 10 characters).";
-  }
-
-  return errors;
+  return errors
 }
-
-function hasErrors(errors: FormErrors): boolean {
-  return Object.keys(errors).length > 0;
-}
-
-const EMPTY_FORM: FormData = { name: "", email: "", painPoint: "" };
 
 export function WaitlistForm() {
-  const [formData, setFormData] = useState<FormData>(EMPTY_FORM);
-  const [errors, setErrors] = useState<FormErrors>({});
-  const [submitStatus, setSubmitStatus] = useState<SubmitStatus>("idle");
-  const [errorMessage, setErrorMessage] = useState<string>("");
+  const [formData, setFormData] = useState<FormData>(EMPTY_FORM)
+  const [errors, setErrors] = useState<FormErrors>({})
+  const [submitState, setSubmitState] = useState<SubmitState>('idle')
+  const [message, setMessage] = useState('')
 
-  function handleChange(
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-    if (errors[name as keyof FormErrors]) {
-      setErrors((prev) => ({ ...prev, [name]: undefined }));
-    }
+  const isLoading = submitState === 'loading'
+
+  function updateField(name: keyof FormData, value: string) {
+    setFormData((current) => ({ ...current, [name]: value }))
+    setErrors((current) => ({ ...current, [name]: undefined }))
   }
 
-  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-
-    const validationErrors = validateForm(formData);
-    if (hasErrors(validationErrors)) {
-      setErrors(validationErrors);
-      return;
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const nextErrors = validateForm(formData)
+    if (Object.keys(nextErrors).length > 0) {
+      setErrors(nextErrors)
+      return
     }
 
-    setErrors({});
-    setSubmitStatus("loading");
-    setErrorMessage("");
+    setSubmitState('loading')
+    setMessage('')
 
     try {
-      const response = await fetch("/api/waitlist", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      const response = await fetch('/api/waitlist', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: formData.name.trim(),
           email: formData.email.trim(),
           painPoint: formData.painPoint.trim(),
         }),
-      });
+      })
 
       if (!response.ok) {
-        const data = await response.json().catch(() => ({}));
-        throw new Error(
-          data?.message ?? `Request failed with status ${response.status}`
-        );
+        throw new Error('Request failed with status ' + response.status)
       }
 
-      setSubmitStatus("success");
-      setFormData(EMPTY_FORM);
-    } catch (err: unknown) {
-      console.error("[WaitlistForm] submission error:", err);
-      const message =
-        err instanceof Error
-          ? err.message
-          : "Something went wrong. Please try again.";
-      setErrorMessage(message);
-      setSubmitStatus("error");
+      setSubmitState('success')
+      setFormData(EMPTY_FORM)
+      setMessage('You are on the list. We will reach out when Sesbox opens new spots.')
+    } catch (error) {
+      console.error('[WaitlistForm] submission error', error)
+      setSubmitState('error')
+      setMessage('Something went wrong. Please try again in a minute.')
     }
   }
 
-  if (submitStatus === "success") {
-    return (
-      <div
-        role="status"
-        aria-live="polite"
-        style={{
-          padding: "1.25rem",
-          borderRadius: "0.5rem",
-          background: "#f0fdf4",
-          border: "1px solid #bbf7d0",
-          textAlign: "center",
-          maxWidth: "420px",
-        }}
-      >
-        <p style={{ margin: 0, fontWeight: 600, color: "#15803d" }}>
-          You&apos;re on the list! 🎉
-        </p>
-        <p style={{ margin: "0.5rem 0 0", fontSize: "0.875rem", color: "#166534" }}>
-          We&apos;ll reach out as soon as sesbox is ready.
-        </p>
-      </div>
-    );
-  }
-
-  const isLoading = submitStatus === "loading";
-
   return (
-    <form
-      onSubmit={handleSubmit}
-      noValidate
-      aria-label="Join the sesbox waitlist"
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        gap: "0.875rem",
-        maxWidth: "420px",
-        width: "100%",
-      }}
-    >
-      <Field
-        id="wl-name"
-        label="Name"
-        name="name"
-        type="text"
-        autoComplete="name"
-        placeholder="Your name"
-        value={formData.name}
-        error={errors.name}
-        disabled={isLoading}
-        onChange={handleChange}
-      />
-
-      <Field
-        id="wl-email"
-        label="Email"
-        name="email"
-        type="email"
-        autoComplete="email"
-        placeholder="you@example.com"
-        value={formData.email}
-        error={errors.email}
-        disabled={isLoading}
-        onChange={handleChange}
-      />
-
-      <TextareaField
-        id="wl-pain-point"
-        label="Workflow pain point"
-        name="painPoint"
-        placeholder="e.g. I record voice notes but never turn them into posts…"
-        value={formData.painPoint}
-        error={errors.painPoint}
-        disabled={isLoading}
-        onChange={handleChange}
-      />
-
-      {submitStatus === "error" && errorMessage && (
-        <p
-          role="alert"
-          style={{ margin: 0, fontSize: "0.8125rem", color: "#b91c1c" }}
-        >
-          {errorMessage}
+    <form onSubmit={handleSubmit} noValidate style={{ display: 'grid', gap: '0.9rem', maxWidth: '420px', width: '100%' }}>
+      <Field label="Name" name="name" type="text" value={formData.name} error={errors.name} disabled={isLoading} onChange={updateField} />
+      <Field label="Email" name="email" type="email" value={formData.email} error={errors.email} disabled={isLoading} onChange={updateField} />
+      <TextareaField label="Workflow pain point" name="painPoint" value={formData.painPoint} error={errors.painPoint} disabled={isLoading} onChange={updateField} />
+      {message ? (
+        <p role={submitState === 'error' ? 'alert' : 'status'} style={{ margin: 0, color: submitState === 'error' ? '#b42318' : '#166534', fontSize: '0.92rem' }}>
+          {message}
         </p>
-      )}
-
+      ) : null}
       <button
         type="submit"
         disabled={isLoading}
-        aria-busy={isLoading}
-        style={{
-          padding: "0.625rem 1.25rem",
-          borderRadius: "0.375rem",
-          border: "none",
-          background: isLoading ? "#94a3b8" : "#6366f1",
-          color: "#fff",
-          fontWeight: 600,
-          fontSize: "0.9375rem",
-          cursor: isLoading ? "not-allowed" : "pointer",
-          transition: "background 0.15s ease",
-        }}
+        style={{ minHeight: '3rem', borderRadius: '999px', border: 'none', background: isLoading ? '#d0c3b8' : '#c96531', color: '#fff', fontWeight: 700, cursor: isLoading ? 'not-allowed' : 'pointer' }}
       >
-        {isLoading ? "Submitting…" : "Join the waitlist"}
+        {isLoading ? 'Submitting...' : 'Join the waitlist'}
       </button>
     </form>
-  );
+  )
 }
 
-interface FieldProps {
-  id: string;
-  label: string;
-  name: string;
-  type: string;
-  autoComplete?: string;
-  placeholder?: string;
-  value: string;
-  error?: string;
-  disabled: boolean;
-  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+type FieldProps = {
+  label: string
+  name: keyof FormData
+  type: string
+  value: string
+  error?: string
+  disabled: boolean
+  onChange: (name: keyof FormData, value: string) => void
 }
 
-function Field({
-  id,
-  label,
-  name,
-  type,
-  autoComplete,
-  placeholder,
-  value,
-  error,
-  disabled,
-  onChange,
-}: FieldProps) {
+function Field({ label, name, type, value, error, disabled, onChange }: FieldProps) {
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "0.25rem" }}>
-      <label
-        htmlFor={id}
-        style={{ fontSize: "0.875rem", fontWeight: 500, color: "#374151" }}
-      >
-        {label}
-      </label>
+    <label style={{ display: 'grid', gap: '0.35rem' }}>
+      <span style={{ fontSize: '0.9rem', fontWeight: 600 }}>{label}</span>
       <input
-        id={id}
-        name={name}
         type={type}
-        autoComplete={autoComplete}
-        placeholder={placeholder}
         value={value}
         disabled={disabled}
-        onChange={onChange}
-        aria-invalid={!!error}
-        aria-describedby={error ? `${id}-error` : undefined}
-        style={{
-          padding: "0.5rem 0.75rem",
-          borderRadius: "0.375rem",
-          border: error ? "1px solid #f87171" : "1px solid #d1d5db",
-          fontSize: "0.9375rem",
-          outline: "none",
-          background: disabled ? "#f9fafb" : "#fff",
-          color: "#111827",
-        }}
+        onChange={(event) => onChange(name, event.target.value)}
+        style={{ minHeight: '3rem', borderRadius: '16px', border: '1px solid #e7ddd2', padding: '0 1rem', background: '#fffaf4' }}
       />
-      {error && (
-        <span
-          id={`${id}-error`}
-          role="alert"
-          style={{ fontSize: "0.8125rem", color: "#b91c1c" }}
-        >
-          {error}
-        </span>
-      )}
+      {error ? <span style={{ color: '#b42318', fontSize: '0.8rem' }}>{error}</span> : null}
+    </label>
+  )
+}
+
+type TextareaFieldProps = {
+  label: string
+  name: keyof FormData
+  value: string
+  error?: string
+  disabled: boolean
+  onChange: (name: keyof FormData, value: string) => void
+}
+
+function TextareaField({ label, name, value, error, disabled, onChange }: TextareaFieldProps) {
+  return (
+    <label style={{ display: 'grid', gap: '0.35rem' }}>
+      <span style={{ fontSize: '0.9rem', fontWeight: 600 }}>{label}</span>
+      <textarea
+        value={value}
+        disabled={disabled}
+        onChange={(event) => onChange(name, event.target.value)}
+        rows={4}
+        style={{ borderRadius: '16px', border: '1px solid #e7ddd2', padding: '0.9rem 1rem', background: '#fffaf4', resize: 'vertical' }}
+      />
+      {error ? <span style={{ color: '#b42318', fontSize: '0.8rem' }}>{error}</span> : null}
+    </label>
+  )
+}

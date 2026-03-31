@@ -1,110 +1,95 @@
 # sesbox
 
-> ⚠️ **Pilot repo** — this project is under active early development. Expect breaking changes.
+Voice-first creator SaaS for turning voice notes into publishable drafts.
 
----
+## Overview
 
-## What is sesbox?
+sesbox is a lightweight MVP designed to help creators capture ideas by voice and turn them into structured drafts they can review, approve, and export.
 
-sesbox is a voice-first creator SaaS that turns voice notes into publishable drafts.
+The product is intentionally simple:
+- record a voice note
+- transcribe it
+- generate a draft
+- approve or export the result
 
-The goal: give creators a lightweight, low-friction way to capture ideas by voice and get clean, ready-to-publish content in return — no manual editing required.
+## Prerequisites
 
----
+Before running the project locally, make sure you have:
 
-## Product Goal
+- Node.js 18 or newer
+- npm installed
+- An OpenAI API key for transcription and draft generation
 
-Ship a waitlist-ready MVP that demonstrates the core loop:
+## Quick Start
 
-1. User records or uploads a voice note
-2. sesbox transcribes and structures the content
-3. A publishable draft is returned for review or export
+1. Clone the repository
 
-### Pricing model (current)
+      git clone <repo-url>
+   cd sesbox
+   
+2. Install dependencies
 
-- Free beta access
-- No Stripe checkout required for signup
-- Waitlist onboarding is email-based only during pilot phase
+      npm install
+   
+3. Create your local environment file
 
----
+      cp .env.example .env
+   
+4. Add your API key to `.env`
 
-## Local Development
+   - Set `OPENAI_API_KEY` to your OpenAI API key
 
-### Prerequisites
+5. Start the development server
 
-- Node.js >= 18
-- A `.env.local` file (see [Environment Variables](#environment-variables) below)
+      npm run dev
+   
+6. Open the app in your browser
 
-### Install and run
-
-```bash
-npm install
-npm run dev
-```
-
-The app will be available at `http://localhost:3000`.
-
-### Build for production
-
-```bash
-npm run build
-npm start
-```
-
----
+   - Use the local development URL printed in the terminal
 
 ## Environment Variables
 
-Copy `.env.example` to `.env.local` and fill in the required values:
+| Variable | Required | Description |
+| --- | --- | --- |
+| `NODE_ENV` | Yes | Runtime environment, such as `development` or `production` |
+| `NEXT_PUBLIC_APP_NAME` | Yes | Public app name shown in the UI |
+| `OPENAI_API_KEY` | Yes | API key used by the local adapter for transcription and draft generation |
 
-```bash
-cp .env.example .env.local
-```
+## Architecture
 
-Required variables are defined in `.env.example`. No variable should have a hidden default — all required values must be explicitly set before the app will start correctly.
+sesbox uses a simple voice-to-draft pipeline:
 
----
+1. Voice record  
+   The user records a voice note in the app.
 
-## Deployment
+2. Whisper transcription  
+   The audio is sent through a local adapter under `lib/` that handles the external transcription provider call. This keeps route and UI layers thin.
 
-**Deploy target: [Vercel](https://vercel.com)**
+3. Draft generation  
+   The transcript is converted into a structured draft using centralized provider logic under `lib/`.
 
-### Steps
+4. Review and approve  
+   The user reviews the generated draft, makes edits if needed, and approves it.
 
-1. Push the repo to GitHub (already at `ForgeCoreye/sesbox`)
-2. Import the project in the Vercel dashboard
-3. Set all environment variables from `.env.example` in the Vercel project settings
-4. Vercel will auto-detect the Next.js framework and apply build defaults
+5. Export  
+   The final draft can be exported for publishing or downstream use.
 
-### Assumptions
+### Design Principles
 
-- No custom `vercel.json` is required unless you need edge functions or custom routing
-- The `main` branch is treated as the production branch
-- Preview deployments are enabled automatically for all PRs
-- No external infra (databases, queues) is assumed at pilot stage — add explicitly as needed
+- Keep third-party SDK usage inside local adapter modules under `lib/`
+- Avoid direct SDK imports in route handlers or UI components
+- Centralize provider calls so the app remains easy to test and maintain
+- Keep the core user flow stable while adding new capabilities incrementally
 
----
+## Project Notes
 
-## Project Structure
+This project is focused on shipping a waitlist-ready MVP with a clean setup experience and a minimal, reliable content pipeline.
 
-```text
-sesbox/
-├── app/          # Next.js app router pages and layouts
-├── components/   # Shared UI components
-├── lib/          # Core logic and utilities
-├── public/       # Static assets
-├── .env.example  # Environment variable reference (no secrets)
-└── README.md
-```
+## Getting Help
 
----
+If setup fails:
 
-## Release Stage
-
-**Pilot** — core UX is being validated. Deployment settings and infra are reviewed explicitly before each change. See task history for rationale on deploy decisions.
-
----
-
-## Contributing
-
-This is a closed pilot. If you have access, open a PR against `main` with a clear description of the change and its expected output.
+- confirm Node.js 18+ is installed
+- verify `.env` exists and contains `OPENAI_API_KEY`
+- restart the dev server after changing environment variables
+- check terminal logs for runtime errors and missing configuration

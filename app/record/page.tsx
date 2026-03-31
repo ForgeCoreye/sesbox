@@ -1,6 +1,6 @@
 "use client";
 
-import { useAuth } from "@clerk/nextjs";
+export const dynamic = "force-dynamic";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -12,16 +12,25 @@ type DraftResponse = {
 };
 
 export default function RecordPage() {
-  const { isLoaded, isSignedIn } = useAuth();
   const router = useRouter();
   const [draftId, setDraftId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isLoaded, setIsLoaded] = useState(false);
+  const [hasSession, setHasSession] = useState(false);
 
   useEffect(() => {
-    if (isLoaded && !isSignedIn) {
-      router.replace("/sign-in");
+    const hasSessionToken = document.cookie
+      .split(';')
+      .map((item) => item.trim())
+      .some((item) => item.startsWith('session_token='));
+
+    setHasSession(hasSessionToken);
+    setIsLoaded(true);
+
+    if (!hasSessionToken) {
+      router.replace('/signup');
     }
-  }, [isLoaded, isSignedIn, router]);
+  }, [router]);
 
   const draftHref = useMemo(() => {
     return draftId ? `/draft/${draftId}` : null;
@@ -52,7 +61,7 @@ export default function RecordPage() {
     );
   }
 
-  if (!isSignedIn) {
+  if (!hasSession) {
     return null;
   }
 

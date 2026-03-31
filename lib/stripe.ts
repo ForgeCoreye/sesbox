@@ -6,6 +6,18 @@ type StripeClientLike = {
   };
 };
 
+type CreateStripePaymentIntentInput = {
+  amount: number;
+  currency?: string;
+  receipt_email?: string;
+  metadata?: Record<string, unknown>;
+};
+
+type CreateStripePaymentIntentResult = {
+  id: string;
+  clientSecret: string;
+};
+
 let stripeClient: StripeClientLike | null = null;
 let stripeInitError: Error | null = null;
 
@@ -84,4 +96,44 @@ export function generateSessionToken(email: string): string {
 
   return `st_${crypto.randomUUID().replace(/-/g, '')}`;
 }
-export const createStripePaymentIntent = {} as any
+
+function resolvePaymentIntentAmount(rawAmount: number): number {
+  const fallback = Number(process.env.STRIPE_WAITLIST_DEPOSIT_CENTS || 100);
+  const safeFallback = Number.isFinite(fallback) ? Math.max(1, Math.round(fallback)) : 100;
+  const safeAmount = Number.isFinite(rawAmount) ? Math.round(rawAmount) : safeFallback;
+  return safeAmount > 0 ? safeAmount : safeFallback;
+}
+
+export async function createStripePaymentIntent(
+  input: CreateStripePaymentIntentInput
+): Promise<CreateStripePaymentIntentResult> {
+  const client = getStripeClient();
+
+  if (!client.paymentIntents || typeof client.paymentIntents.create !== 'function') {
+    throw new Error('Stripe payment intent API is unavailable on the initialized client.');
+  }
+
+  const payload = {
+    amount: resolvePaymentIntentAmount(input.amount),
+    currency: typeof input.currency === 'string' && input.currency.trim() ? input.currency : 'usd',
+    receipt_email: typeof input.receipt_email === 'string' ? input.receipt_email : undefined,
+    metadata: input.metadata && typeof input.metadata === 'object' ? input.metadata : undefined,
+    automatic_payment_methods: { enabled: true },
+  };
+
+  const result = (await client.paymentIntents.create(payload)) as {
+    id?: string;
+    client_secret?: string;
+    clientSecret?: string;
+  };
+
+  const clientSecret = String(result?.client_secret || result?.clientSecret || '').trim();
+  if (!clientSecret) {
+    throw new Error('Stripe payment intent created without a client secret.');
+  }
+
+  return {
+    id: String(result?.id || ''),
+    clientSecret,
+  };
+}

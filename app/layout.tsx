@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import type { ReactNode } from "react";
+import { ClerkProvider } from "@clerk/nextjs";
 import "./globals.css";
 
 type AnalyticsLike = {
@@ -66,10 +67,17 @@ export default function RootLayout({
   children: ReactNode;
 }>) {
   useAnalyticsUnloadFlush();
+  const publishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
 
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        {publishableKey ? (
+          <ClerkProvider publishableKey={publishableKey}>{children}</ClerkProvider>
+        ) : (
+          children
+        )}
+      </body>
     </html>
   );
 }

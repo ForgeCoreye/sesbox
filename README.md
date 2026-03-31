@@ -12,6 +12,17 @@ The product is intentionally simple:
 - generate a draft
 - approve or export the result
 
+## Screenshots
+
+### Main Page
+![Main Page](ss/main.png)
+
+### Dashboard
+![Dashboard](ss/dashboard.png)
+
+### Record Interface
+![Record Interface](ss/record.png)
+
 ## Prerequisites
 
 Before running the project locally, make sure you have:

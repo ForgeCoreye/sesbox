@@ -23,26 +23,53 @@ export function ApiKeyInput() {
   };
 
   return (
-    <details className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-      <summary className="cursor-pointer text-sm font-medium text-gray-700 select-none">
-        OpenAI API Key Settings
+    <details style={{
+      borderRadius: "var(--radius-lg)",
+      border: "1px solid var(--border)",
+      background: "rgba(255,255,255,0.72)",
+      backdropFilter: "blur(10px)",
+      padding: "1.25rem 1.5rem",
+      boxShadow: "var(--shadow)",
+    }}>
+      <summary style={{
+        cursor: "pointer",
+        fontSize: "0.92rem",
+        fontWeight: 600,
+        color: "var(--muted)",
+        userSelect: "none",
+      }}>
+        🔑 OpenAI API Key Settings
       </summary>
-      <div className="mt-3 space-y-2">
-        <p className="text-xs text-gray-500">
-          Your key is stored only in your browser and sent directly to OpenAI.
+      <div style={{ marginTop: "1rem", display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+        <p style={{ fontSize: "0.82rem", color: "var(--muted)", margin: 0, lineHeight: 1.6 }}>
+          Your key is stored only in your browser and sent directly to OpenAI. We never see or store it.
         </p>
-        <div className="flex gap-2">
+        <div style={{ display: "flex", gap: "0.5rem" }}>
           <input
             type="password"
             value={key}
             onChange={(e) => setKey(e.target.value)}
             placeholder="sk-..."
-            className="flex-1 rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-gray-500 focus:outline-none"
+            style={{
+              flex: 1,
+              minHeight: "2.6rem",
+              padding: "0 1rem",
+              borderRadius: "999px",
+              border: "1px solid var(--border)",
+              background: "var(--surface-strong)",
+              fontSize: "0.9rem",
+              outline: "none",
+            }}
           />
           <button
             type="button"
             onClick={handleSave}
-            className="rounded-md bg-black px-3 py-1.5 text-sm text-white hover:bg-gray-800"
+            className="btn btn--primary"
+            style={{
+              minHeight: "2.6rem",
+              padding: "0 1.2rem",
+              fontSize: "0.85rem",
+            }}
           >
             {saved ? "Saved ✓" : "Save"}
           </button>

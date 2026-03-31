@@ -2,8 +2,7 @@
 
 export const dynamic = "force-dynamic";
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useMemo, useState } from "react";
 import { VoiceRecorder } from '../../components/VoiceRecorder';
 
 type DraftResponse = {
@@ -12,25 +11,8 @@ type DraftResponse = {
 };
 
 export default function RecordPage() {
-  const router = useRouter();
   const [draftId, setDraftId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [isLoaded, setIsLoaded] = useState(false);
-  const [hasSession, setHasSession] = useState(false);
-
-  useEffect(() => {
-    const hasSessionToken = document.cookie
-      .split(';')
-      .map((item) => item.trim())
-      .some((item) => item.startsWith('session_token='));
-
-    setHasSession(hasSessionToken);
-    setIsLoaded(true);
-
-    if (!hasSessionToken) {
-      router.replace('/signup');
-    }
-  }, [router]);
 
   const draftHref = useMemo(() => {
     return draftId ? `/draft/${draftId}` : null;
@@ -53,22 +35,13 @@ export default function RecordPage() {
     setDraftId(null);
   };
 
-  if (!isLoaded) {
-    return (
-      <main className="mx-auto flex min-h-screen max-w-2xl items-center justify-center px-6 py-12">
-        <p className="text-sm text-gray-500">Loading...</p>
-      </main>
-    );
-  }
-
-  if (!hasSession) {
-    return null;
-  }
-
   return (
     <main className="mx-auto min-h-screen max-w-2xl px-6 py-12">
       <div className="space-y-6">
         <header className="space-y-2">
+          <Link href="/" className="text-sm text-gray-500 hover:text-gray-700">
+            &larr; Back to home
+          </Link>
           <h1 className="text-3xl font-semibold tracking-tight text-gray-950">
             Record a voice note
           </h1>

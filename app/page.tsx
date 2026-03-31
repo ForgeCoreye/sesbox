@@ -6,90 +6,121 @@ export const metadata: Metadata = {
   description: "Turn voice notes into publishable drafts. Join the waitlist for early access.",
 };
 
-function DemoSection() {
+export default function HomePage() {
   return (
-    <section className="mx-auto w-full max-w-6xl px-4 py-16 sm:px-6 lg:px-8">
-      <div className="rounded-3xl border border-white/10 bg-white/5 p-6 shadow-lg backdrop-blur sm:p-8">
-        <div className="mb-6 flex flex-col gap-3">
-          <p className="text-sm font-medium uppercase tracking-[0.2em] text-white/60">
-            Demo
-          </p>
-          <h2 className="text-2xl font-semibold tracking-tight text-white sm:text-3xl">
-            See how sesbox turns voice into drafts
-          </h2>
-          <p className="max-w-2xl text-sm leading-6 text-white/70 sm:text-base">
-            Record a voice note, get a structured draft, and move from idea to publishable content faster.
-          </p>
-        </div>
-
-        <div className="grid gap-4 md:grid-cols-3">
-          <div className="rounded-2xl border border-white/10 bg-black/20 p-5">
-            <p className="text-sm font-medium text-white">1. Capture</p>
-            <p className="mt-2 text-sm leading-6 text-white/70">
-              Drop in a voice note or quick thought and let the system handle the first pass.
-            </p>
-          </div>
-          <div className="rounded-2xl border border-white/10 bg-black/20 p-5">
-            <p className="text-sm font-medium text-white">2. Structure</p>
-            <p className="mt-2 text-sm leading-6 text-white/70">
-              Convert raw speech into a clean outline with key points, hooks, and next steps.
-            </p>
-          </div>
-          <div className="rounded-2xl border border-white/10 bg-black/20 p-5">
-            <p className="text-sm font-medium text-white">3. Publish</p>
-            <p className="mt-2 text-sm leading-6 text-white/70">
-              Refine the draft and export it into a format ready for your audience.
-            </p>
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-export default function Page() {
-  return (
-    <main className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-950 to-slate-900 text-white">
-      <section className="mx-auto flex w-full max-w-6xl flex-col gap-10 px-4 py-10 sm:px-6 lg:flex-row lg:items-center lg:px-8 lg:py-16">
-        <div className="flex-1">
-          <div className="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-medium uppercase tracking-[0.2em] text-white/60">
-            Voice-first creator SaaS
-          </div>
-
-          <h1 className="mt-5 max-w-2xl text-4xl font-semibold tracking-tight sm:text-5xl lg:text-6xl">
-            Turn voice notes into publishable drafts.
+    <main className="home">
+      {/* ── Hero ── */}
+      <section className="hero">
+        <div className="container">
+          <span className="badge">Voice-first creator tool</span>
+          <h1 className="hero__headline">
+            Talk it out.&nbsp;
+            <span className="accent">Ship it clean.</span>
           </h1>
-
-          <p className="mt-5 max-w-2xl text-base leading-7 text-white/70 sm:text-lg">
-            Capture ideas faster, structure them automatically, and move from rough thoughts to polished content with less friction.
+          <p className="hero__sub">
+            Record a voice note. Sesbox turns it into a polished, publish-ready
+            draft — no editing spiral, no blank-page dread.
           </p>
-
-          <div className="mt-8 max-w-xl">
-            <WaitlistForm />
-          </div>
-        </div>
-
-        <div className="flex-1">
-          <div className="rounded-3xl border border-white/10 bg-white/5 p-6 shadow-2xl backdrop-blur sm:p-8">
-            <div className="space-y-4">
-              <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
-                <p className="text-xs uppercase tracking-[0.2em] text-white/50">Input</p>
-                <p className="mt-2 text-sm leading-6 text-white/80">
-                  “I want to write a post about how creators can use voice notes to draft faster.”
-                </p>
-              </div>
-              <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
-                <p className="text-xs uppercase tracking-[0.2em] text-white/50">Output</p>
-                <p className="mt-2 text-sm leading-6 text-white/80">
-                  A clear outline, headline options, and a first draft ready to edit and publish.
-                </p>
-              </div>
-            </div>
+          <div className="hero__cta-group">
+            <a href="#waitlist" className="btn btn--primary">
+              Join the waitlist
+            </a>
+            <a href="#how-it-works" className="btn btn--ghost">
+              See how it works
+            </a>
           </div>
         </div>
       </section>
 
-      <DemoSection />
+      {/* ── How it works ── */}
+      <section id="how-it-works" className="workflow">
+        <div className="container">
+          <h2 className="section-title">From voice to published in three steps</h2>
+          <ol className="workflow__steps">
+            <WorkflowStep
+              number="01"
+              title="Record"
+              description="Open Sesbox and speak. No script needed — raw thoughts are fine."
+            />
+            <WorkflowStep
+              number="02"
+              title="Review"
+              description="We transcribe, structure, and tighten your words into a clean draft."
+            />
+            <WorkflowStep
+              number="03"
+              title="Publish"
+              description="Copy to your platform of choice or export directly. Done."
+            />
+          </ol>
+        </div>
+      </section>
+
+      {/* ── Social proof ── */}
+      <section className="social-proof">
+        <div className="container">
+          <h2 className="section-title">Early creators are shipping faster</h2>
+          <div className="testimonials">
+            <TestimonialCard
+              quote="I recorded a 90-second voice note and had a LinkedIn post ready in under two minutes."
+              author="— Beta tester, solo founder"
+            />
+            <TestimonialCard
+              quote="This is the first tool that matches how my brain actually works."
+              author="— Beta tester, newsletter writer"
+            />
+            <TestimonialCard
+              quote="Sesbox cut my content creation time in half. I just talk now."
+              author="— Beta tester, indie maker"
+            />
+          </div>
+          <p className="social-proof__disclaimer">
+            Testimonials from closed beta participants.
+          </p>
+        </div>
+      </section>
+
+      {/* ── CTA / Waitlist ── */}
+      <section id="waitlist" className="cta">
+        <div className="container cta__inner">
+          <h2 className="cta__headline">Ready to stop staring at a blank page?</h2>
+          <p className="cta__sub">
+            Join the waitlist. We&apos;ll let you in as spots open.
+          </p>
+          <WaitlistForm className="waitlist-form" />
+        </div>
+      </section>
+
+      {/* ── Footer ── */}
+      <footer className="footer">
+        <div className="container footer__inner">
+          <span className="footer__brand">Sesbox</span>
+          <span className="footer__copy">
+            &copy; {new Date().getFullYear()} Sesbox. All rights reserved.
+          </span>
+        </div>
+      </footer>
     </main>
+  );
+}
+
+/* ── Sub-components ── */
+
+function WorkflowStep({ number, title, description }: { number: string; title: string; description: string }) {
+  return (
+    <li className="workflow__step">
+      <span className="workflow__number" aria-hidden="true">{number}</span>
+      <h3 className="workflow__step-title">{title}</h3>
+      <p className="workflow__step-desc">{description}</p>
+    </li>
+  );
+}
+
+function TestimonialCard({ quote, author }: { quote: string; author: string }) {
+  return (
+    <blockquote className="testimonial">
+      <p className="testimonial__quote">{quote}</p>
+      <footer className="testimonial__author">{author}</footer>
+    </blockquote>
   );
 }

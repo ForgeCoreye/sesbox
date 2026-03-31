@@ -1,3 +1,7 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 :root {
   --bg: #f6f1ea;
   --surface: #fffaf4;
@@ -39,6 +43,7 @@ button, input, textarea { font: inherit; }
   border: 0;
 }
 
+/* ── Landing page ── */
 .home { min-height: 100vh; }
 .container {
   width: min(calc(100% - 2rem), var(--container));

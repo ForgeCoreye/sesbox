@@ -11,9 +11,10 @@
   "dependencies": {
     "@clerk/nextjs": "^6.17.0",
     "next": "15.5.14",
+    "next-auth": "latest",
+    "openai": "^6.33.0",
     "react": "18.2.0",
-    "react-dom": "18.2.0",
-    "next-auth": "latest"
+    "react-dom": "18.2.0"
   },
   "devDependencies": {
     "@types/node": "20.11.5",

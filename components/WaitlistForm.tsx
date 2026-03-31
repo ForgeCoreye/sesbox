@@ -133,59 +133,57 @@ export default function WaitlistForm({
 
   return (
     <form className={className} onSubmit={handleSubmit} noValidate>
-      <div className="space-y-3">
-        <div>
-          <label htmlFor={inputId} className="block text-sm font-medium">
-            Email address
-          </label>
-          <div className="mt-1 flex gap-2">
-            <input
-              id={inputId}
-              name="email"
-              type="email"
-              inputMode="email"
-              autoComplete="email"
-              autoCapitalize="none"
-              autoCorrect="off"
-              spellCheck={false}
-              value={email}
-              onChange={handleChange}
-              onBlur={handleBlur}
-              aria-invalid={showError ? "true" : "false"}
-              aria-describedby={describedBy}
-              disabled={status === "loading"}
-              placeholder="you@example.com"
-              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm outline-none transition focus:border-black disabled:cursor-not-allowed disabled:bg-gray-100"
-            />
-            <button
-              type="submit"
-              disabled={status === "loading"}
-              className="rounded-md bg-black px-4 py-2 text-sm font-medium text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {status === "loading" ? "Joining..." : "Join waitlist"}
-            </button>
-          </div>
-        </div>
+      <label htmlFor={inputId} className="sr-only">
+        Email address
+      </label>
+      <input
+        id={inputId}
+        name="email"
+        type="email"
+        inputMode="email"
+        autoComplete="email"
+        autoCapitalize="none"
+        autoCorrect="off"
+        spellCheck={false}
+        value={email}
+        onChange={handleChange}
+        onBlur={handleBlur}
+        aria-invalid={showError ? "true" : "false"}
+        aria-describedby={describedBy}
+        disabled={status === "loading"}
+        placeholder="you@example.com"
+        className="waitlist-form__input"
+      />
+      <button
+        type="submit"
+        disabled={status === "loading"}
+        className="btn btn--primary waitlist-form__btn"
+        style={{ opacity: status === "loading" ? 0.6 : undefined }}
+      >
+        {status === "loading" ? "Joining…" : "Join waitlist"}
+      </button>
 
-        {showError ? (
-          <p id={errorId} role="alert" className="text-sm text-red-600">
-            {validationError}
-          </p>
-        ) : null}
+      {showError ? (
+        <p id={errorId} role="alert" style={{ width: "100%", color: "#c53030", fontSize: "0.88rem", margin: "0.25rem 0 0" }}>
+          {validationError}
+        </p>
+      ) : null}
 
-        {message ? (
-          <p
-            id={messageId}
-            role={status === "error" ? "alert" : "status"}
-            aria-live="polite"
-            className={`text-sm ${
-              status === "success" ? "text-green-600" : "text-red-600"
-            }`}
-          >
-            {message}
-          </p>
-        ) : null}
-      </div>
+      {message ? (
+        <p
+          id={messageId}
+          role={status === "error" ? "alert" : "status"}
+          aria-live="polite"
+          style={{
+            width: "100%",
+            color: status === "success" ? "#276749" : "#c53030",
+            fontSize: "0.88rem",
+            margin: "0.25rem 0 0",
+          }}
+        >
+          {message}
+        </p>
+      ) : null}
     </form>
   );
 }

@@ -1,16 +1,21 @@
 # sesbox
 
-Voice-first creator SaaS for turning voice notes into publishable drafts.
+Voice-first creator tool — record a voice note, get a publishable draft.
 
 ## Overview
 
-sesbox is a lightweight MVP designed to help creators capture ideas by voice and turn them into structured drafts they can review, approve, and export.
+sesbox turns voice notes into structured drafts using OpenAI Whisper transcription. It's free to use — just bring your own OpenAI API key.
 
 The product is intentionally simple:
 - record a voice note
 - transcribe it
 - generate a draft
 - approve or export the result
+
+**Core flow:**
+1. Record a voice note in the browser
+2. Whisper transcribes it to text
+3. Review, edit, and export the draft
 
 ## Screenshots
 
@@ -33,38 +38,48 @@ Before running the project locally, make sure you have:
 
 ## Quick Start
 
-1. Clone the repository
+1. Clone and install:
+   ```bash
+   git clone https://github.com/ForgeCoreye/sesbox.git
+   cd sesbox && npm install
+   ```
 
-      git clone <repo-url>
-   cd sesbox
-   
-2. Install dependencies
+2. (Optional) Create `.env` with a server-side API key:
+   ```
+   OPENAI_API_KEY=sk-...
+   ```
 
-      npm install
-   
-3. Create your local environment file
+3. Start the dev server:
+   ```bash
+   npm run dev
+   ```
 
-      cp .env.example .env
-   
-4. Add your API key to `.env`
+4. Open the app → go to **Record** → enter your OpenAI API key in settings → start recording.
 
-   - Set `OPENAI_API_KEY` to your OpenAI API key
+## Bring Your Own Key
 
-5. Start the development server
+Users can enter their own OpenAI API key directly in the browser. The key is stored in localStorage and sent via header — never logged or persisted server-side.
 
-      npm run dev
-   
-6. Open the app in your browser
+If a server-side `OPENAI_API_KEY` is set in the environment, it's used as a fallback.
 
-   - Use the local development URL printed in the terminal
+## Deploy to Vercel
+
+1. Push to GitHub
+2. Import the repo in [vercel.com](https://vercel.com)
+3. No environment variables required — users provide their own API key
+4. (Optional) Set `OPENAI_API_KEY` if you want a shared fallback key
+
+## Tech Stack
+
+- **Next.js 15** — App Router, React 18
+- **OpenAI Whisper** — `whisper-1` model for transcription
+- **Vercel** — recommended deployment target
 
 ## Environment Variables
 
 | Variable | Required | Description |
 | --- | --- | --- |
-| `NODE_ENV` | Yes | Runtime environment, such as `development` or `production` |
-| `NEXT_PUBLIC_APP_NAME` | Yes | Public app name shown in the UI |
-| `OPENAI_API_KEY` | Yes | API key used by the local adapter for transcription and draft generation |
+| `OPENAI_API_KEY` | No | Fallback API key. Users can provide their own in the browser. |
 
 ## Architecture
 

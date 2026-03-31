@@ -1,7 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { useUser } from "@clerk/nextjs";
+import { useState } from "react";
+
+export const dynamic = "force-dynamic";
 
 type SubmissionState = "idle" | "submitting" | "success" | "error";
 
@@ -17,23 +18,11 @@ function isValidEmail(email: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed);
 }
 
-function getDisplayName(firstName?: string | null, email?: string | null): string {
-  if (firstName && firstName.trim()) return firstName.trim();
-  if (email && email.trim()) return email.trim().split("@")[0];
-  return "there";
-}
-
 export default function WaitlistPage() {
-  const { user, isLoaded } = useUser();
   const [email, setEmail] = useState("");
   const [state, setState] = useState<SubmissionState>("idle");
   const [message, setMessage] = useState<string>("");
   const [fieldError, setFieldError] = useState<string>("");
-
-  const displayName = useMemo(
-    () => getDisplayName(user?.firstName, user?.primaryEmailAddress?.emailAddress),
-    [user?.firstName, user?.primaryEmailAddress?.emailAddress]
-  );
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -59,8 +48,8 @@ export default function WaitlistPage() {
         },
         body: JSON.stringify({
           email: normalizedEmail,
-          clerkUserId: user?.id ?? null,
-          name: user?.fullName ?? user?.firstName ?? null,
+          clerkUserId: null,
+          name: null,
         }),
       });
 
@@ -100,17 +89,9 @@ export default function WaitlistPage() {
         </div>
 
         <div className="mb-6 rounded-xl bg-neutral-50 p-4 text-sm text-neutral-700">
-          {isLoaded ? (
-            user ? (
-              <span>
-                Signed in as <strong>{displayName}</strong>. We&apos;ll associate your waitlist entry with your account.
-              </span>
-            ) : (
-              <span>Sign in is optional. Enter your email below to reserve your spot.</span>
-            )
-          ) : (
-            <span>Loading your account context...</span>
-          )}
+          <span>
+            Sign in is optional. Enter your email below to reserve your spot.
+          </span>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4" noValidate>

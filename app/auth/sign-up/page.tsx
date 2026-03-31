@@ -1,5 +1,7 @@
 import { SignUp } from '@clerk/nextjs'
 
+export const dynamic = 'force-dynamic'
+
 const shellStyle: React.CSSProperties = {
   minHeight: '100vh',
   background: '#f6f1ea',

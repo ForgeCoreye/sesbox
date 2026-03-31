@@ -15,7 +15,8 @@
     "react-dom": "18.2.0",
     "next-auth": "latest",
     "@stripe/stripe-js": "latest",
-    "@stripe/react-stripe-js": "latest"
+    "@stripe/react-stripe-js": "latest",
+    "stripe": "latest"
   },
   "devDependencies": {
     "@types/node": "20.11.5",

@@ -57,9 +57,7 @@ function HeroSection() {
 
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
             <Link
-              href={process.env.NEXT_PUBLIC_STRIPE_CHECKOUT_URL ?? "#"}
-              target="_blank"
-              rel="noreferrer"
+              href="/waitlist"
               className="inline-flex items-center justify-center rounded-xl bg-cyan-400 px-5 py-3 text-sm font-semibold text-slate-950 transition hover:bg-cyan-300 focus:outline-none focus:ring-2 focus:ring-cyan-300 focus:ring-offset-2 focus:ring-offset-slate-950"
             >
               Join waitlist
@@ -178,31 +176,23 @@ function TranscriptPreview() {
           </div>
 
           <div className="rounded-3xl border border-cyan-400/20 bg-gradient-to-br from-cyan-400/10 to-violet-500/10 p-6">
-            <p className="text-sm font-semibold uppercase tracking-[0.2em] text-cyan-200">Waitlist CTA</p>
+            <p className="text-sm font-semibold uppercase tracking-[0.2em] text-cyan-200">Free Access</p>
             <h2 className="mt-3 text-2xl font-semibold text-white">Get early access to the demo</h2>
             <p className="mt-3 text-sm leading-6 text-slate-200">
-              Join the waitlist to be first in line when the full workflow opens up.
+              Join the waitlist to be first in line when the full workflow opens up. No payment required.
             </p>
 
             <div className="mt-6 rounded-2xl border border-white/10 bg-slate-950/70 p-4">
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Checkout link</p>
-              <p className="mt-2 break-all text-sm text-slate-200">
-                {process.env.NEXT_PUBLIC_STRIPE_CHECKOUT_URL ?? "NEXT_PUBLIC_STRIPE_CHECKOUT_URL="}
-              </p>
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Current plan</p>
+              <p className="mt-2 text-sm text-slate-200">Free beta onboarding for early users.</p>
             </div>
 
             <Link
-              href={process.env.NEXT_PUBLIC_STRIPE_CHECKOUT_URL ?? "#"}
-              target="_blank"
-              rel="noreferrer"
+              href="/waitlist"
               className="mt-6 inline-flex w-full items-center justify-center rounded-xl bg-white px-5 py-3 text-sm font-semibold text-slate-950 transition hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-slate-950"
             >
               Join waitlist
             </Link>
-
-            <p className="mt-4 text-xs leading-5 text-slate-400">
-              Configure the checkout URL via <code className="rounded bg-white/5 px-1 py-0.5">NEXT_PUBLIC_STRIPE_CHECKOUT_URL</code>.
-            </p>
           </div>
         </div>
       </div>

@@ -141,6 +141,8 @@ export function clearAnalyticsBuffer(): void {
   }
 }
 
-export function recordSuccessfulStripeCheckout(input: WaitlistSignupInput): AnalyticsEvent | null {
+export function recordWaitlistConversion(input: WaitlistSignupInput): AnalyticsEvent | null {
   return trackWaitlistSignup(input);
 }
+
+export const recordSuccessfulStripeCheckout = recordWaitlistConversion;

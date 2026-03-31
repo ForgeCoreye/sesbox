@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 const SESSION_COOKIE_NAME = 'session_token';
 
-const PUBLIC_PATH_PREFIXES = ['/signup', '/api/create-payment-intent'];
+const PUBLIC_PATH_PREFIXES = ['/signup'];
 const PUBLIC_PATH_EXACT = new Set<string>(['/']);
 
 function isPublicPath(pathname: string): boolean {
@@ -46,5 +46,5 @@ export function middleware(request: NextRequest): NextResponse {
 }
 
 export const config = {
-  matcher: ['/app/:path*', '/signup', '/api/create-payment-intent/:path*'],
+  matcher: ['/app/:path*', '/signup'],
 };

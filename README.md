@@ -20,6 +20,12 @@ Ship a waitlist-ready MVP that demonstrates the core loop:
 2. sesbox transcribes and structures the content
 3. A publishable draft is returned for review or export
 
+### Pricing model (current)
+
+- Free beta access
+- No Stripe checkout required for signup
+- Waitlist onboarding is email-based only during pilot phase
+
 ---
 
 ## Local Development

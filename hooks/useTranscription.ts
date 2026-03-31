@@ -46,9 +46,18 @@ export function useTranscription({ audioBlob, enabled }: UseTranscriptionOptions
         const formData = new FormData();
         formData.append("audio", audioBlob!, "recording.webm");
 
+        const headers: Record<string, string> = {};
+        const storedKey = typeof window !== "undefined"
+          ? localStorage.getItem("sesbox_openai_key") ?? ""
+          : "";
+        if (storedKey) {
+          headers["x-openai-key"] = storedKey;
+        }
+
         const response = await fetch("/api/transcribe", {
           method: "POST",
           body: formData,
+          headers,
           signal: controller.signal,
         });
 

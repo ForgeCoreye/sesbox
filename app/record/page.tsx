@@ -4,6 +4,7 @@ export const dynamic = "force-dynamic";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { VoiceRecorder } from '../../components/VoiceRecorder';
+import { ApiKeyInput } from '../../components/ApiKeyInput';
 
 type DraftResponse = {
   draftId?: string;
@@ -53,6 +54,8 @@ export default function RecordPage() {
         <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
           <VoiceRecorder onSuccess={handleSuccess} onError={handleError} />
         </section>
+
+        <ApiKeyInput />
 
         {error ? (
           <div

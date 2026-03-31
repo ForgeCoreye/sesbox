@@ -22,11 +22,13 @@ function buildTitle(transcript: string): string {
 
 export async function POST(request: NextRequest) {
   try {
-    const apiKey = process.env.OPENAI_API_KEY;
+    // Accept user-provided key via header, fall back to server env
+    const userKey = request.headers.get('x-openai-key')?.trim();
+    const apiKey = userKey || process.env.OPENAI_API_KEY;
     if (!apiKey) {
       return NextResponse.json(
-        { error: 'Server configuration error: OPENAI_API_KEY is not set.' },
-        { status: 500 }
+        { error: 'No API key provided. Please enter your OpenAI API key in settings.' },
+        { status: 401 }
       );
     }
 

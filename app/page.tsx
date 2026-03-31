@@ -18,12 +18,12 @@ export default function HomePage() {
             <span className="accent">Ship it clean.</span>
           </h1>
           <p className="hero__sub">
-            Record a voice note. Sesbox turns it into a polished, publish-ready
-            draft — no editing spiral, no blank-page dread.
+            Record a voice note. Sesbox turns it into a polished, publish‑ready
+            draft. No editing spiral, no blank‑page dread.
           </p>
           <div className="hero__cta-group">
             <a href="/record" className="btn btn--primary">
-              Try it now — free
+              Try it now
             </a>
             <a href="#how-it-works" className="btn btn--ghost">
               See how it works
